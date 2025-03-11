@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+ 
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="initial-scale=1" />
+	<meta name="description" content="APTMalware - Advanced Persistent Threat MALWARE stats">
+	<meta name="keywords" content="APTMalware, Advanced Persistent Threat MALWARE stats">
+	<meta name="author" content="Andrea Cristaldi">
+	<title>Advanced Persistent Threat MALWARE features and statistics</title>
+	<link rel="stylesheet" href="CSS/style2.css" />
+	<link rel="icon" type="image/x-icon" href="images/favicon.ico">
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+
+
+
+
+</script>
+
+
+</head>
+<body>
+<div id="container">
+  
+    <div id="introDiv">
+      
+      <div id="show-intro">
+	  <h1><img src="images/Eagle Eye logo.png" /> EagleEye Malware features and statistics</h1>
+        <p>EagleEye is a stealthy computer network threat actor, nation state, state-sponsored group or non-state sponsored groups conducting large-scale targeted intrusions for specific goals, which gains unauthorized access to a computer network and remains undetected for an extended period.
+        </p>
+		<p>The data reported here are the result of a processing based on static analysis techniques performed on 29GB of malware samples attributed to APT groups, followed by a correlation process. The sample group is limited to PE Portable executable. The data in JSON format are available on the github repository.</p>
+		<p>Attribution is a very complex issue. Information published here may be wrong, outdated, or may change based on evolving information.</p>
+        <p>Sample sources: <a href="https://www.vx-underground.org/" target="blank_">VX-Underground</a></p>
+		<p>ALL DOCUMENTS AND THE INFORMATION CONTAINED THEREIN ARE PROVIDED ON AN "AS IS" BASIS</p>
+		 
+		<button id="start">Go to data</button>
+      </div>
+     
+	   
+    </div>
+	</div>
+	<div id="DivContainer">
+	<img src="images/Eagle Eye logo.png"/>
+	<h1>APT Malware features and statistics</h1>
+		<div class="DivPanel1">
+			<h2>Samples</h2>
+			<span id="NSamples"></span>
+			<p>2010-2022</br>
+			PE Portable Executable</br>
+			29GB of data analysed using static analysis techniques</br>
+			<a href="malware.html">Here, the stats</a></br></br></p>
+			<a href="index.html">Go to APTMap</a></br></br>
+		<h3 id="Aboutclickable" >About APTMalware</h3>
+		</div>
+	
+		
+		
+		<div class="DivPanel2">
+			<h2>Samples</h2>
+			
+			 <div class="table-container" id="TableSamples">
+        <input type="text" id="search-input1" placeholder="Search hash"><br/><br/>
+		
+		<table>
+            <thead>
+                <tr>
+					<th>ID</th>
+                    <th>HASH</th>
+                                        
+                </tr>
+            </thead>
+            <tbody>
+                
+            </tbody>
+        </table>
+		<div id="pagination1">
+        <button id="prev-page1">Prev</button>
+        <span id="page-number1">1</span> / <span id="total-pages1">1</span>
+        <button id="next-page1">Next</button>
+		<span id="count1"></span> 
+    <script>
+
+
+document.getElementById("start").addEventListener("click", function () {
+	document.getElementById("DivContainer").style.filter = "blur(0px)";
+    document.getElementById("container").style.display = "none";
+    
+    });
+	
+document.getElementById("Aboutclickable").addEventListener("click", function () {
+	document.getElementById("DivContainer").style.filter = "blur(8px)";
+    document.getElementById("container").style.display = "";
+    
+    });
+	
+	
+	var referrer = document.referrer;
+
+    if (referrer.includes("malware.html")) {
+        
+ document.getElementById("DivContainer").style.filter = "blur(0px)";
+ document.getElementById("container").style.display = "none";
+      } 
+
+
+
+
+        const itemsPerPage1 = 250;
+        let currentPage1 = 1;
+        let jsonData1 = [];
+		let filteredData1 =[];
+
+        
+        function loadData1() {
+            $.getJSON('hashes.json', function(data) {
+                jsonData1 = data;
+				filteredData1 = jsonData1;
+				let count = filteredData1.length;
+			
+			
+				document.getElementById("NSamples").innerHTML=count;
+              
+                const totalPages = Math.ceil(filteredData1.length / itemsPerPage1);
+                $('#total-pages1').text(totalPages);
+                updateTable1();
+            });
+        }
+
+        
+        function updateTable1() {
+            const startIndex = (currentPage1 - 1) * itemsPerPage1;
+            const endIndex = startIndex + itemsPerPage1;
+			const currentPageData = filteredData1.slice(startIndex, endIndex);
+
+            const tableBody = $('#TableSamples tbody');
+            tableBody.empty();
+
+            for (const item of currentPageData) {
+                tableBody.append(`<tr><td><a target='_blank' href='https://www.virustotal.com/gui/search/${item.SHA256}'>${item.SHA256}</a></td><td>MD5: ${item.MD5}<br/>SHA1: ${item.SHA1}<br/>SHA256: ${item.SHA256}</td></tr>`);
+            }
+			
+			let celem = 0;
+			for (const item of filteredData1) {
+                
+			   celem +=1;
+			}
+			$('#count1').text('Total record: ' + celem );
+     
+
+            $('#page-number1').text(currentPage1);
+        }
+
+        
+        $('#prev-page1').click(function() {
+            if (currentPage1 > 1) {
+                currentPage1--;
+                updateTable1();
+            }
+        });
+
+        
+        $('#next-page1').click(function() {
+            const maxPage = Math.ceil(jsonData1.length / itemsPerPage1);
+            if (currentPage1 < maxPage) {
+                currentPage1++;
+                updateTable1();
+            }
+        });
+		$('#search-input1').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase();
+            filteredData1 = jsonData1.filter(item => item.MD5.toLowerCase().includes(searchTerm) || 
+                item.SHA1.toLowerCase().includes(searchTerm)|| 
+                item.SHA256.toLowerCase().includes(searchTerm));
+            currentPage1 = 1;
+			const totalPages = Math.ceil(filteredData1.length / itemsPerPage1);
+            $('#total-pages1').text(totalPages);
+            updateTable1();
+        });
+        
+        loadData1();
+    </script>
+	
+	</div>
+		
+		
+		
+    </div>
+	</div>
+	<div class="clearfix"></div>
+	
+	</div>
+	
+
+
+
+</body>
+</html>
