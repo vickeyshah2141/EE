@@ -1,4 +1,4 @@
-html,
+/* html,
 body,
 #viewDiv,
 #container {
@@ -6,6 +6,18 @@ body,
   margin: 0;
   height: 95%;
   width: 100%;
+  color: #323232;
+  font-family: "Avenir Next W00", "Helvetica Neue", Helvetica, Arial, sans-serif;
+} */
+html,
+body,
+#viewDiv,
+#container {
+  padding: 0;
+  margin: 0;
+  height: 100vh; /* Full viewport height */
+  width: 100vw; /* Full viewport width */
+  overflow: hidden; /* Prevent scrolling */
   color: #323232;
   font-family: "Avenir Next W00", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }

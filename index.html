@@ -1535,6 +1535,22 @@ function chkrelAPT1click() {
   }
 }
 
+ /*added from here*/
+function openFullscreen() {
+    let elem = document.documentElement;
+    if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+    } else if (elem.mozRequestFullScreen) { // Firefox
+        elem.mozRequestFullScreen();
+    } else if (elem.webkitRequestFullscreen) { // Chrome, Safari, Opera
+        elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { // IE/Edge
+        elem.msRequestFullscreen();
+    }
+}
+ /*added till here*/
+window.onload = openFullscreen; // Automatically enter fullscreen mode
+
 
 function chkrelAPT2click() {
   
