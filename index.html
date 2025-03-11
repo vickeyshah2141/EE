@@ -6,7 +6,7 @@
   <meta name="viewport" content="initial-scale=1" />
   <meta name="description" content="EagleEye - Advanced Persistent Threat Map">
   <meta name="keywords" content="EagleEye, Advanced Persistent Threat Map">
-  <meta name="author" content="Andrea Cristaldi">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
   <title>EagleEye - Advanced Persistent Threat Map</title>
   <link rel="stylesheet" href="https://js.arcgis.com/4.27/esri/themes/light/main.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -1536,8 +1536,8 @@ function chkrelAPT1click() {
 }
 
  /*added from here*/
-function openFullscreen() {
-    let elem = document.documentElement;
+ function openFullscreen() {
+    let elem = document.documentElement; // Select the entire page
     if (elem.requestFullscreen) {
         elem.requestFullscreen();
     } else if (elem.mozRequestFullScreen) { // Firefox
@@ -1548,9 +1548,19 @@ function openFullscreen() {
         elem.msRequestFullscreen();
     }
 }
- /*added till here*/
-window.onload = openFullscreen; // Automatically enter fullscreen mode
 
+// Automatically enter full screen after page loads
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(openFullscreen, 1000); // Delay to allow page elements to load
+});
+
+// Handle fullscreen change to reapply if exited
+document.addEventListener("fullscreenchange", () => {
+    if (!document.fullscreenElement) {
+        openFullscreen();
+    }
+});
+ /*added till here*/
 
 function chkrelAPT2click() {
   
