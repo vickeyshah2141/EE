@@ -1,4 +1,4 @@
-/* html,
+html,
 body,
 #viewDiv,
 #container {
@@ -8,27 +8,7 @@ body,
   width: 100%;
   color: #323232;
   font-family: "Avenir Next W00", "Helvetica Neue", Helvetica, Arial, sans-serif;
-} */
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden; /* Hide scrollbars */
 }
-
-#viewDiv {
-  width: 100vw;
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-}
-
-#about, #maptitle, #others, #search, #chart, #relationship, #malware {
-  display: none; /* Hide UI elements */
-}
-
 
 #searchInputRes {
   padding: 10px;
