@@ -28,17 +28,34 @@
 var jdata;
 
 async function fetchData() {
+  // Show loading overlay
+  LoadingManager.show('Fetching threat intelligence data...', 0);
+  
   try {
+    // Simulate loading progress
+    LoadingManager.updateProgress(20, 'Connecting to data source...');
+    
     const response = await fetch('apt.json');
+    LoadingManager.updateProgress(60, 'Processing threat data...');
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     jdata = await response.json();
+    LoadingManager.updateProgress(90, 'Validating data integrity...');
 
     if (jdata.hasOwnProperty("features")) {
       console.log("JSON OK");
+      LoadingManager.updateProgress(100, 'Data loaded successfully');
+      setTimeout(() => LoadingManager.hide(), 500);
     } else {
-      console.log("JSON ERROR");
+      throw new Error("Invalid data format: missing features property");
     }
   } catch (error) {
     console.log('JSON error: ', error);
+    LoadingManager.hide();
+    ErrorHandler.show('Data Loading Failed', `Failed to load threat intelligence data: ${error.message}`, 'fetchData');
   }
 }
 
@@ -1621,6 +1638,241 @@ function clearSearch()
 	document.getElementById("searchLocation").value="";
 
 }
+
+// Loading States & Error Handling System
+class LoadingManager {
+    static isVisible = false;
+    static currentMessage = '';
+    static currentProgress = 0;
+
+    static show(message = 'Loading...', progress = 0) {
+        const overlay = document.getElementById('loading-overlay');
+        const messageEl = document.getElementById('loading-message');
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        this.isVisible = true;
+        this.currentMessage = message;
+        this.currentProgress = progress;
+
+        messageEl.textContent = message;
+        progressFill.style.width = progress + '%';
+        progressText.textContent = progress + '%';
+        
+        overlay.style.display = 'flex';
+        setTimeout(() => overlay.classList.add('visible'), 10);
+    }
+
+    static updateProgress(progress, message = null) {
+        if (!this.isVisible) return;
+
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-text');
+        const messageEl = document.getElementById('loading-message');
+
+        this.currentProgress = Math.max(progress, this.currentProgress);
+        
+        if (message) {
+            this.currentMessage = message;
+            messageEl.textContent = message;
+        }
+
+        progressFill.style.width = this.currentProgress + '%';
+        progressText.textContent = this.currentProgress + '%';
+    }
+
+    static hide() {
+        const overlay = document.getElementById('loading-overlay');
+        
+        overlay.classList.remove('visible');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            this.isVisible = false;
+            this.currentProgress = 0;
+        }, 300);
+    }
+
+    static showSearch() {
+        const searchLoading = document.getElementById('search-loading');
+        searchLoading.style.display = 'flex';
+        setTimeout(() => searchLoading.classList.add('visible'), 10);
+    }
+
+    static hideSearch() {
+        const searchLoading = document.getElementById('search-loading');
+        searchLoading.classList.remove('visible');
+        setTimeout(() => searchLoading.style.display = 'none', 300);
+    }
+}
+
+class ErrorHandler {
+    static retryCallbacks = new Map();
+
+    static show(title, message, retryAction = null) {
+        const overlay = document.getElementById('error-overlay');
+        const titleEl = document.getElementById('error-title');
+        const messageEl = document.getElementById('error-message');
+        const retryBtn = document.getElementById('retry-btn');
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+
+        if (retryAction) {
+            this.retryCallbacks.set('current', retryAction);
+            retryBtn.style.display = 'inline-flex';
+        } else {
+            retryBtn.style.display = 'none';
+        }
+
+        overlay.style.display = 'flex';
+        setTimeout(() => overlay.classList.add('visible'), 10);
+
+        // Auto-hide network errors after 10 seconds
+        if (title.includes('Network') || title.includes('Connection')) {
+            setTimeout(() => this.hide(), 10000);
+        }
+    }
+
+    static hide() {
+        const overlay = document.getElementById('error-overlay');
+        overlay.classList.remove('visible');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            this.retryCallbacks.clear();
+        }, 300);
+    }
+
+    static retry() {
+        const retryAction = this.retryCallbacks.get('current');
+        if (retryAction) {
+            this.hide();
+            
+            if (typeof retryAction === 'string') {
+                // Call function by name
+                if (window[retryAction] && typeof window[retryAction] === 'function') {
+                    window[retryAction]();
+                }
+            } else if (typeof retryAction === 'function') {
+                retryAction();
+            }
+        }
+    }
+
+    static showNetworkError() {
+        this.show(
+            'Network Connection Lost', 
+            'Unable to connect to the threat intelligence servers. Please check your internet connection.',
+            'fetchData'
+        );
+    }
+
+    static showTimeoutError() {
+        this.show(
+            'Request Timeout', 
+            'The request took too long to complete. This might be due to a slow connection or server issues.',
+            'fetchData'
+        );
+    }
+
+    static showServerError(status) {
+        this.show(
+            'Server Error',
+            `The server returned an error (${status}). Please try again later or contact support if the issue persists.`,
+            'fetchData'
+        );
+    }
+}
+
+class NetworkMonitor {
+    static isOnline = navigator.onLine;
+    static statusElement = null;
+
+    static init() {
+        this.statusElement = document.getElementById('network-status');
+        
+        window.addEventListener('online', () => this.handleOnline());
+        window.addEventListener('offline', () => this.handleOffline());
+        
+        // Initial status check
+        if (!navigator.onLine) {
+            this.handleOffline();
+        }
+    }
+
+    static handleOnline() {
+        this.isOnline = true;
+        this.hideStatus();
+        
+        // Auto-retry if there was a network error
+        if (document.getElementById('error-overlay').style.display === 'flex') {
+            const errorTitle = document.getElementById('error-title').textContent;
+            if (errorTitle.includes('Network') || errorTitle.includes('Connection')) {
+                setTimeout(() => ErrorHandler.retry(), 1000);
+            }
+        }
+    }
+
+    static handleOffline() {
+        this.isOnline = false;
+        this.showStatus();
+        
+        // Show network error if loading
+        if (LoadingManager.isVisible) {
+            LoadingManager.hide();
+            ErrorHandler.showNetworkError();
+        }
+    }
+
+    static showStatus() {
+        if (this.statusElement) {
+            this.statusElement.style.display = 'flex';
+            setTimeout(() => this.statusElement.classList.add('visible'), 10);
+        }
+    }
+
+    static hideStatus() {
+        if (this.statusElement) {
+            this.statusElement.classList.remove('visible');
+            setTimeout(() => this.statusElement.style.display = 'none', 300);
+        }
+    }
+}
+
+// Enhanced Search Function with Loading States
+function searchWithLoading() {
+    LoadingManager.showSearch();
+    
+    try {
+        // Call original search function
+        Search();
+        setTimeout(() => LoadingManager.hideSearch(), 1000);
+    } catch (error) {
+        LoadingManager.hideSearch();
+        ErrorHandler.show('Search Error', 'Failed to perform search operation: ' + error.message);
+    }
+}
+
+// Initialize error handling event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Retry button
+    document.getElementById('retry-btn').addEventListener('click', () => {
+        ErrorHandler.retry();
+    });
+
+    // Dismiss error button
+    document.getElementById('dismiss-error-btn').addEventListener('click', () => {
+        ErrorHandler.hide();
+    });
+
+    // Network monitoring
+    NetworkMonitor.init();
+
+    // Override search button to use loading states
+    const searchBtn = document.getElementById('btnsearch');
+    if (searchBtn) {
+        searchBtn.onclick = searchWithLoading;
+    }
+});
 		
 		
 		</script>
@@ -1705,5 +1957,67 @@ Search();
 }, 6000);
  
  </script>
+
+<!-- Loading States & Error Handling Components -->
+<div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="loading-container">
+        <div class="cyber-loader">
+            <div class="cyber-spinner"></div>
+            <div class="loading-rings">
+                <div class="ring ring1"></div>
+                <div class="ring ring2"></div>
+                <div class="ring ring3"></div>
+            </div>
+        </div>
+        <div class="loading-text">
+            <span id="loading-message">Loading threat data...</span>
+            <div class="loading-dots">
+                <span>.</span><span>.</span><span>.</span>
+            </div>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <span id="progress-text">0%</span>
+        </div>
+    </div>
+</div>
+
+<div id="error-overlay" class="error-overlay" style="display: none;">
+    <div class="error-container">
+        <div class="error-icon">
+            <i class="fa fa-exclamation-triangle"></i>
+        </div>
+        <div class="error-content">
+            <h3 id="error-title">Connection Error</h3>
+            <p id="error-message">Failed to load threat intelligence data. Please check your connection and try again.</p>
+            <div class="error-actions">
+                <button id="retry-btn" class="error-btn primary">
+                    <i class="fa fa-refresh"></i> Retry
+                </button>
+                <button id="dismiss-error-btn" class="error-btn secondary">
+                    <i class="fa fa-times"></i> Dismiss
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="search-loading" class="search-loading" style="display: none;">
+    <div class="search-spinner">
+        <i class="fa fa-search"></i>
+        <div class="search-wave"></div>
+    </div>
+    <span>Searching threats...</span>
+</div>
+
+<div id="network-status" class="network-status" style="display: none;">
+    <div class="status-indicator offline">
+        <i class="fa fa-wifi"></i>
+        <span>Connection Lost</span>
+    </div>
+</div>
+
 </body>
 </html>
