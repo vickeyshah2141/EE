@@ -1634,13 +1634,42 @@ function clearSearch()
 		<div><img src="images/Eagle Eye logo.png" /> </div> 
 		<div>		
 		<h1>Search</h1>
-		<div id"searchPnl">APT Name: <input type="text" id="searchAPTname" name="searchAPTname"><br><br>
-		Location: <input type="text" id="searchLocation" name="searchLocation"><br><br>
-		Target: <input type="text" id="searchTarget" name="searchTarget"><br><br>
-		Target category: <input type="text" id="searchTargetcategory" name="searchTargetcategory"><br><br>
-		Tool: <input type="text" id="searchTool" name="searchTool"><br><br>
-		<input type="button" id="btnsearch" name="btnsearch" value="Search" onclick="btnSearchClick()">
-		<button onclick="clearSearch()">Clear</button>
+		<div id="searchPnl">
+			<div class="autocomplete-container">
+				<label for="searchAPTname">APT Name:</label>
+				<input type="text" id="searchAPTname" name="searchAPTname" placeholder="Search APT groups..." autocomplete="off">
+				<div id="autocomplete-searchAPTname" class="autocomplete-dropdown"></div>
+			</div>
+			
+			<div class="autocomplete-container">
+				<label for="searchLocation">Location:</label>
+				<input type="text" id="searchLocation" name="searchLocation" placeholder="Search countries/regions..." autocomplete="off">
+				<div id="autocomplete-searchLocation" class="autocomplete-dropdown"></div>
+			</div>
+			
+			<div class="autocomplete-container">
+				<label for="searchTarget">Target:</label>
+				<input type="text" id="searchTarget" name="searchTarget" placeholder="Search target organizations..." autocomplete="off">
+				<div id="autocomplete-searchTarget" class="autocomplete-dropdown"></div>
+			</div>
+			
+			<div class="autocomplete-container">
+				<label for="searchTargetcategory">Target Category:</label>
+				<input type="text" id="searchTargetcategory" name="searchTargetcategory" placeholder="Search target categories..." autocomplete="off">
+				<div id="autocomplete-searchTargetcategory" class="autocomplete-dropdown"></div>
+			</div>
+			
+			<div class="autocomplete-container">
+				<label for="searchTool">Tool:</label>
+				<input type="text" id="searchTool" name="searchTool" placeholder="Search malware/tools..." autocomplete="off">
+				<div id="autocomplete-searchTool" class="autocomplete-dropdown"></div>
+			</div>
+		</div>
+		
+		<div class="search-actions">
+		<input type="button" id="btnsearch" name="btnsearch" value="🔍 Search" onclick="btnSearchClick()">
+		<button onclick="clearSearch()">🗑️ Clear</button>
+		<button id="advanced-search-toggle" onclick="toggleAdvancedSearch()">⚙️ Advanced</button>
 		</div>
 		<ol id="searchPlaceHolder">
 		</ol>
@@ -1703,6 +1732,364 @@ function clearSearch()
 Search();
 	}
 }, 6000);
+
+// Enhanced Search with Autocomplete Functionality
+class AutocompleteManager {
+    constructor() {
+        this.searchData = {
+            aptNames: new Set(),
+            locations: new Set(),
+            targets: new Set(),
+            targetCategories: new Set(),
+            tools: new Set()
+        };
+        this.currentFocus = -1;
+        this.activeDropdown = null;
+        this.init();
+    }
+
+    init() {
+        // Wait for data to load
+        setTimeout(() => {
+            this.extractSearchData();
+            this.setupEventListeners();
+        }, 2000);
+    }
+
+    extractSearchData() {
+        if (!jdata || !jdata.features) return;
+
+        jdata.features.forEach(feature => {
+            const props = feature.properties;
+            
+            // Extract APT names
+            if (props.name) {
+                this.searchData.aptNames.add(props.name);
+            }
+            if (props['other-names'] && Array.isArray(props['other-names'])) {
+                props['other-names'].forEach(name => {
+                    if (name) this.searchData.aptNames.add(name);
+                });
+            }
+
+            // Extract locations
+            if (props.country) this.searchData.locations.add(props.country);
+            if (props.location) this.searchData.locations.add(props.location);
+
+            // Extract targets
+            if (props.targets) {
+                const targets = props.targets.split(/[,;]/).map(t => t.trim()).filter(t => t);
+                targets.forEach(target => this.searchData.targets.add(target));
+            }
+
+            // Extract target categories
+            if (props['target-category']) {
+                const categories = props['target-category'].split(/[,;]/).map(c => c.trim()).filter(c => c);
+                categories.forEach(category => this.searchData.targetCategories.add(category));
+            }
+
+            // Extract tools
+            if (props.tools && Array.isArray(props.tools)) {
+                props.tools.forEach(tool => {
+                    if (tool.name) this.searchData.tools.add(tool.name);
+                });
+            }
+        });
+
+        console.log('Autocomplete data extracted:', {
+            aptNames: this.searchData.aptNames.size,
+            locations: this.searchData.locations.size,
+            targets: this.searchData.targets.size,
+            targetCategories: this.searchData.targetCategories.size,
+            tools: this.searchData.tools.size
+        });
+    }
+
+    setupEventListeners() {
+        const inputConfigs = [
+            { id: 'searchAPTname', dataSet: 'aptNames', type: 'APT' },
+            { id: 'searchLocation', dataSet: 'locations', type: 'Location' },
+            { id: 'searchTarget', dataSet: 'targets', type: 'Target' },
+            { id: 'searchTargetcategory', dataSet: 'targetCategories', type: 'Category' },
+            { id: 'searchTool', dataSet: 'tools', type: 'Tool' }
+        ];
+
+        inputConfigs.forEach(config => {
+            const input = document.getElementById(config.id);
+            const dropdown = document.getElementById(`autocomplete-${config.id}`);
+
+            if (input && dropdown) {
+                input.addEventListener('input', (e) => {
+                    this.handleInput(e, config);
+                });
+
+                input.addEventListener('keydown', (e) => {
+                    this.handleKeydown(e, dropdown);
+                });
+
+                input.addEventListener('focus', (e) => {
+                    if (e.target.value) {
+                        this.handleInput(e, config);
+                    }
+                });
+
+                input.addEventListener('blur', (e) => {
+                    // Delay hiding to allow clicking on dropdown items
+                    setTimeout(() => {
+                        this.hideDropdown(dropdown);
+                    }, 200);
+                });
+            }
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.autocomplete-container')) {
+                this.hideAllDropdowns();
+            }
+        });
+    }
+
+    handleInput(event, config) {
+        const input = event.target;
+        const dropdown = document.getElementById(`autocomplete-${config.id}`);
+        const query = input.value.toLowerCase().trim();
+
+        if (query.length < 1) {
+            this.hideDropdown(dropdown);
+            return;
+        }
+
+        const dataSet = this.searchData[config.dataSet];
+        const matches = this.fuzzySearch(query, Array.from(dataSet));
+        
+        this.showDropdown(dropdown, matches, query, config.type, input);
+    }
+
+    fuzzySearch(query, items, maxResults = 10) {
+        if (!query) return [];
+
+        const results = items.map(item => {
+            const lowerItem = item.toLowerCase();
+            let score = 0;
+
+            // Exact match gets highest score
+            if (lowerItem === query) {
+                score = 1000;
+            }
+            // Starts with query gets high score
+            else if (lowerItem.startsWith(query)) {
+                score = 500 + (query.length / item.length) * 100;
+            }
+            // Contains query gets medium score
+            else if (lowerItem.includes(query)) {
+                score = 200 + (query.length / item.length) * 50;
+            }
+            // Fuzzy match gets lower score
+            else if (this.fuzzyMatch(query, lowerItem)) {
+                score = 50;
+            }
+
+            return { item, score };
+        })
+        .filter(result => result.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, maxResults)
+        .map(result => result.item);
+
+        return results;
+    }
+
+    fuzzyMatch(query, text) {
+        let queryIndex = 0;
+        for (let i = 0; i < text.length && queryIndex < query.length; i++) {
+            if (text[i] === query[queryIndex]) {
+                queryIndex++;
+            }
+        }
+        return queryIndex === query.length;
+    }
+
+    showDropdown(dropdown, matches, query, type, input) {
+        if (matches.length === 0) {
+            this.hideDropdown(dropdown);
+            return;
+        }
+
+        dropdown.innerHTML = '';
+        this.currentFocus = -1;
+        this.activeDropdown = dropdown;
+
+        matches.forEach((match, index) => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.setAttribute('data-index', index);
+
+            const highlightedText = this.highlightMatch(match, query);
+            
+            item.innerHTML = `
+                <span>${highlightedText}</span>
+                <span class="item-type">${type}</span>
+            `;
+
+            item.addEventListener('click', () => {
+                input.value = match;
+                this.hideDropdown(dropdown);
+                input.focus();
+                
+                // Trigger search automatically
+                setTimeout(() => {
+                    if (typeof Search === 'function') {
+                        Search();
+                    }
+                }, 100);
+            });
+
+            dropdown.appendChild(item);
+        });
+
+        dropdown.classList.add('show');
+    }
+
+    highlightMatch(text, query) {
+        if (!query) return text;
+        
+        const regex = new RegExp(`(${this.escapeRegex(query)})`, 'gi');
+        return text.replace(regex, '<span class="match-highlight">$1</span>');
+    }
+
+    escapeRegex(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    handleKeydown(event, dropdown) {
+        const items = dropdown.querySelectorAll('.autocomplete-item');
+        
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            this.currentFocus = Math.min(this.currentFocus + 1, items.length - 1);
+            this.updateSelection(items);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            this.currentFocus = Math.max(this.currentFocus - 1, -1);
+            this.updateSelection(items);
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            if (this.currentFocus >= 0 && items[this.currentFocus]) {
+                items[this.currentFocus].click();
+            } else {
+                // Perform search with current value
+                if (typeof Search === 'function') {
+                    Search();
+                }
+            }
+        } else if (event.key === 'Escape') {
+            this.hideDropdown(dropdown);
+            event.target.blur();
+        } else if (event.key === 'Tab') {
+            this.hideDropdown(dropdown);
+        }
+    }
+
+    updateSelection(items) {
+        items.forEach((item, index) => {
+            item.classList.remove('keyboard-selected');
+            if (index === this.currentFocus) {
+                item.classList.add('keyboard-selected');
+                item.scrollIntoView({ block: 'nearest' });
+            }
+        });
+    }
+
+    hideDropdown(dropdown) {
+        dropdown.classList.remove('show');
+        this.currentFocus = -1;
+        if (this.activeDropdown === dropdown) {
+            this.activeDropdown = null;
+        }
+    }
+
+    hideAllDropdowns() {
+        document.querySelectorAll('.autocomplete-dropdown').forEach(dropdown => {
+            this.hideDropdown(dropdown);
+        });
+    }
+}
+
+// Advanced search toggle functionality
+function toggleAdvancedSearch() {
+    const searchPanel = document.getElementById('searchPnl');
+    const button = document.getElementById('advanced-search-toggle');
+    
+    if (searchPanel.classList.contains('advanced-mode')) {
+        searchPanel.classList.remove('advanced-mode');
+        button.textContent = '⚙️ Advanced';
+    } else {
+        searchPanel.classList.add('advanced-mode');
+        button.textContent = '📝 Simple';
+        
+        // Show search statistics
+        showSearchStatistics();
+    }
+}
+
+function showSearchStatistics() {
+    const statsDiv = document.createElement('div');
+    statsDiv.className = 'search-stats';
+    statsDiv.innerHTML = `
+        <strong>Search Tips:</strong><br>
+        • Use partial names (e.g., "APT" will match "APT1", "APT28", etc.)<br>
+        • Try different spelling variations<br>
+        • Search by country names or regions<br>
+        • Look for specific malware tools or families
+    `;
+    
+    const searchPanel = document.getElementById('searchPnl');
+    const existingStats = searchPanel.querySelector('.search-stats');
+    if (existingStats) {
+        existingStats.remove();
+    }
+    searchPanel.appendChild(statsDiv);
+}
+
+// Initialize autocomplete when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for the main application to load
+    setTimeout(() => {
+        window.autocompleteManager = new AutocompleteManager();
+    }, 3000);
+});
+
+// Enhanced clear search function
+function clearSearch() {
+    document.getElementById("searchAPTname").value = "";
+    document.getElementById("searchTarget").value = "";
+    document.getElementById("searchTargetcategory").value = "";
+    document.getElementById("searchTool").value = "";
+    document.getElementById("searchLocation").value = "";
+    
+    // Hide all autocomplete dropdowns
+    if (window.autocompleteManager) {
+        window.autocompleteManager.hideAllDropdowns();
+    }
+    
+    // Remove search statistics if visible
+    const stats = document.querySelector('.search-stats');
+    if (stats) {
+        stats.remove();
+    }
+    
+    // Reset to simple mode
+    const searchPanel = document.getElementById('searchPnl');
+    const button = document.getElementById('advanced-search-toggle');
+    if (searchPanel.classList.contains('advanced-mode')) {
+        searchPanel.classList.remove('advanced-mode');
+        button.textContent = '⚙️ Advanced';
+    }
+    
+    // Clear search results
+    document.getElementById("searchPlaceHolder").innerHTML = "";
+}
  
  </script>
 </body>
