@@ -1847,9 +1847,233 @@ class AutocompleteSearch {
     }
 }
 
-// Initialize autocomplete when DOM is ready
+// Data Filtering Sidebar Functionality
+class DataFilterSidebar {
+    constructor() {
+        this.isCollapsed = false;
+        this.currentFilters = {
+            dateFrom: null,
+            dateTo: null,
+            countries: [],
+            aptCategory: 'all'
+        };
+        this.originalData = null;
+        this.initializeAfterDataLoad();
+    }
+
+    async initializeAfterDataLoad() {
+        const checkData = () => {
+            if (window.jdata && window.jdata.features) {
+                this.originalData = window.jdata.features;
+                this.initializeEventListeners();
+                this.populateCountryFilters();
+                this.setDefaultDateRange();
+            } else {
+                setTimeout(checkData, 100);
+            }
+        };
+        checkData();
+    }
+
+    initializeEventListeners() {
+        // Toggle sidebar
+        document.getElementById('toggle-filters').addEventListener('click', () => {
+            this.toggleSidebar();
+        });
+
+        // Apply filters
+        document.getElementById('apply-filters').addEventListener('click', () => {
+            this.applyFilters();
+        });
+
+        // Reset filters
+        document.getElementById('reset-filters').addEventListener('click', () => {
+            this.resetFilters();
+        });
+
+        // Country checkboxes
+        document.getElementById('country-filters').addEventListener('change', (e) => {
+            if (e.target.type === 'checkbox') {
+                this.updateCountryFilters();
+            }
+        });
+
+        // APT category radios
+        document.getElementById('apt-category-filters').addEventListener('change', (e) => {
+            if (e.target.type === 'radio') {
+                this.currentFilters.aptCategory = e.target.value;
+            }
+        });
+
+        // Date inputs
+        document.getElementById('date-from').addEventListener('change', (e) => {
+            this.currentFilters.dateFrom = e.target.value;
+        });
+
+        document.getElementById('date-to').addEventListener('change', (e) => {
+            this.currentFilters.dateTo = e.target.value;
+        });
+    }
+
+    toggleSidebar() {
+        const sidebar = document.getElementById('filter-sidebar');
+        const toggleBtn = document.getElementById('toggle-filters');
+        const icon = toggleBtn.querySelector('i');
+        
+        this.isCollapsed = !this.isCollapsed;
+        
+        if (this.isCollapsed) {
+            sidebar.classList.add('collapsed');
+            icon.className = 'fa fa-chevron-right';
+        } else {
+            sidebar.classList.remove('collapsed');
+            icon.className = 'fa fa-chevron-left';
+        }
+    }
+
+    populateCountryFilters() {
+        const countries = new Set();
+        this.originalData.forEach(feature => {
+            if (feature.properties.location) {
+                countries.add(feature.properties.location);
+            }
+        });
+
+        const countryFilters = document.getElementById('country-filters');
+        const sortedCountries = Array.from(countries).sort();
+        
+        countryFilters.innerHTML = sortedCountries.map(country => `
+            <label class="filter-checkbox">
+                <input type="checkbox" value="${country}"> ${country}
+            </label>
+        `).join('');
+    }
+
+    setDefaultDateRange() {
+        const today = new Date();
+        const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+        
+        document.getElementById('date-from').value = oneYearAgo.toISOString().split('T')[0];
+        document.getElementById('date-to').value = today.toISOString().split('T')[0];
+        
+        this.currentFilters.dateFrom = oneYearAgo.toISOString().split('T')[0];
+        this.currentFilters.dateTo = today.toISOString().split('T')[0];
+    }
+
+    updateCountryFilters() {
+        const checkboxes = document.querySelectorAll('#country-filters input[type="checkbox"]:checked');
+        this.currentFilters.countries = Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    applyFilters() {
+        let filteredData = [...this.originalData];
+
+        // Apply date range filter
+        if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
+            filteredData = filteredData.filter(feature => {
+                const featureDate = feature.properties['date-added'] || feature.properties.date;
+                if (!featureDate) return true;
+                
+                const date = new Date(featureDate);
+                const fromDate = this.currentFilters.dateFrom ? new Date(this.currentFilters.dateFrom) : null;
+                const toDate = this.currentFilters.dateTo ? new Date(this.currentFilters.dateTo) : null;
+                
+                if (fromDate && date < fromDate) return false;
+                if (toDate && date > toDate) return false;
+                return true;
+            });
+        }
+
+        // Apply country filter
+        if (this.currentFilters.countries.length > 0) {
+            filteredData = filteredData.filter(feature => 
+                this.currentFilters.countries.includes(feature.properties.location)
+            );
+        }
+
+        // Apply APT category filter
+        if (this.currentFilters.aptCategory !== 'all') {
+            filteredData = filteredData.filter(feature => {
+                const category = feature.properties.category || feature.properties.type;
+                return category && category.toLowerCase().includes(this.currentFilters.aptCategory);
+            });
+        }
+
+        // Update the global data and refresh the map
+        window.jdata.features = filteredData;
+        
+        // Trigger a map refresh if Search function exists
+        if (typeof Search === 'function') {
+            Search();
+        }
+
+        // Show filter summary
+        this.showFilterSummary(filteredData.length);
+        
+        // Auto-collapse sidebar on mobile after applying filters
+        if (window.innerWidth <= 768) {
+            this.toggleSidebar();
+        }
+    }
+
+    resetFilters() {
+        // Reset form inputs
+        document.getElementById('date-from').value = '';
+        document.getElementById('date-to').value = '';
+        document.querySelectorAll('#country-filters input[type="checkbox"]').forEach(cb => cb.checked = false);
+        document.querySelector('input[name="apt-category"][value="all"]').checked = true;
+
+        // Reset filter state
+        this.currentFilters = {
+            dateFrom: null,
+            dateTo: null,
+            countries: [],
+            aptCategory: 'all'
+        };
+
+        // Restore original data
+        window.jdata.features = [...this.originalData];
+        
+        // Trigger a map refresh
+        if (typeof Search === 'function') {
+            Search();
+        }
+
+        // Set default date range
+        this.setDefaultDateRange();
+        
+        // Clear filter summary
+        this.hideFilterSummary();
+    }
+
+    showFilterSummary(count) {
+        let summary = document.getElementById('filter-summary');
+        if (!summary) {
+            summary = document.createElement('div');
+            summary.id = 'filter-summary';
+            summary.className = 'filter-summary';
+            document.querySelector('.filter-content').appendChild(summary);
+        }
+        
+        summary.innerHTML = `
+            <i class="fa fa-info-circle"></i>
+            Showing ${count} of ${this.originalData.length} APT groups
+        `;
+        summary.style.display = 'block';
+    }
+
+    hideFilterSummary() {
+        const summary = document.getElementById('filter-summary');
+        if (summary) {
+            summary.style.display = 'none';
+        }
+    }
+}
+
+// Initialize autocomplete and filter sidebar when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.autocompleteSearch = new AutocompleteSearch();
+    window.filterSidebar = new DataFilterSidebar();
 });
 		
 		
@@ -1915,6 +2139,65 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 	</div>
   </div>
+
+<!-- Data Filtering Sidebar -->
+<div id="filter-sidebar" class="filter-sidebar">
+    <div class="filter-header">
+        <h3><i class="fa fa-filter"></i> Data Filters</h3>
+        <button id="toggle-filters" class="toggle-btn">
+            <i class="fa fa-chevron-left"></i>
+        </button>
+    </div>
+    <div class="filter-content">
+        <div class="filter-section">
+            <h4><i class="fa fa-calendar"></i> Date Range</h4>
+            <div class="date-inputs">
+                <label>From:</label>
+                <input type="date" id="date-from" class="filter-input">
+                <label>To:</label>
+                <input type="date" id="date-to" class="filter-input">
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h4><i class="fa fa-globe"></i> Countries</h4>
+            <div id="country-filters" class="checkbox-group">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h4><i class="fa fa-shield"></i> APT Categories</h4>
+            <div id="apt-category-filters" class="radio-group">
+                <label class="filter-radio">
+                    <input type="radio" name="apt-category" value="all" checked> All Categories
+                </label>
+                <label class="filter-radio">
+                    <input type="radio" name="apt-category" value="government"> Government-sponsored
+                </label>
+                <label class="filter-radio">
+                    <input type="radio" name="apt-category" value="criminal"> Criminal Groups
+                </label>
+                <label class="filter-radio">
+                    <input type="radio" name="apt-category" value="hacktivist"> Hacktivist
+                </label>
+                <label class="filter-radio">
+                    <input type="radio" name="apt-category" value="espionage"> Espionage
+                </label>
+            </div>
+        </div>
+
+        <div class="filter-actions">
+            <button id="apply-filters" class="filter-btn primary">
+                <i class="fa fa-check"></i> Apply Filters
+            </button>
+            <button id="reset-filters" class="filter-btn secondary">
+                <i class="fa fa-refresh"></i> Reset
+            </button>
+        </div>
+    </div>
+</div>
+
  <script>
  setTimeout(function(){
  
