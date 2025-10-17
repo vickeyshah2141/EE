@@ -3,10 +3,24 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="initial-scale=1" />
-  <meta name="description" content="EaglEye - Advanced Persistent Threat Map">
-  <meta name="keywords" content="EaglEye, Advanced Persistent Threat Map">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="EaglEye - Interactive cybersecurity threat intelligence platform for Advanced Persistent Threat (APT) analysis and visualization">
+  <meta name="keywords" content="EaglEye, Advanced Persistent Threat, APT, cybersecurity, threat intelligence, malware analysis, cyber warfare">
   <meta name="author" content="Andrea Cristaldi">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#00ffff">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="EaglEye - Advanced Persistent Threat Map">
+  <meta property="og:description" content="Interactive cybersecurity threat intelligence platform for APT analysis">
+  <meta property="og:image" content="images/Eagle Eye logo.png">
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:title" content="EaglEye - Advanced Persistent Threat Map">
+  <meta property="twitter:description" content="Interactive cybersecurity threat intelligence platform for APT analysis">
+  
   <title>EaglEye - Advanced Persistent Threat Map</title>
   <link rel="stylesheet" href="https://js.arcgis.com/4.27/esri/themes/light/main.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -1445,15 +1459,31 @@ function Search()
   </script>
 </head>
 <body>
-  <div id="viewDiv">
-    <div id="about">About EaglEye</div>
-	<div id="maptitle"><img src="images/Eagle Eye logo.png" /></div>
+  <div id="viewDiv" role="main" aria-label="Interactive threat map container">
+    <button id="about" role="button" aria-label="Show information about EaglEye platform" tabindex="0">About EaglEye</button>
+	<div id="maptitle" aria-label="EaglEye application header">
+		<img src="images/Eagle Eye logo.png" 
+		     alt="EaglEye Logo - Cybersecurity Threat Intelligence Platform" 
+		     loading="eager" 
+		     onload="this.style.opacity='1'" 
+		     onerror="this.style.display='none'; console.warn('Failed to load EaglEye logo')" />
+	</div>
 	
-	<div id="others"><h3>Other APTs not in map</h3></div>
-	<div id="search"><h3>Search</h3></div>
-	<div id="chart"><h3>Charts</h3></div>
-	<div id="relationship"><h3>Relationship</h3></div>
-	<div id="malware"><h3>APT Malware</h3></div>
+	<button id="others" role="button" aria-label="View APT groups not displayed on map" tabindex="0">
+		<h3>Other APTs not in map</h3>
+	</button>
+	<button id="search" role="button" aria-label="Open advanced search panel" tabindex="0">
+		<h3>Search</h3>
+	</button>
+	<button id="chart" role="button" aria-label="View statistical charts and analytics" tabindex="0">
+		<h3>Charts</h3>
+	</button>
+	<button id="relationship" role="button" aria-label="Explore APT relationships and connections" tabindex="0">
+		<h3>Relationship</h3>
+	</button>
+	<button id="malware" role="button" aria-label="Browse APT malware database" tabindex="0">
+		<h3>APT Malware</h3>
+	</button>
 	
 	
   </div>
@@ -1638,16 +1668,44 @@ class AutocompleteSearch {
     }
 
     async initializeAfterDataLoad() {
-        // Wait for jdata to be loaded
+        // Wait for jdata to be loaded with timeout and error handling
+        let attempts = 0;
+        const maxAttempts = 50; // 5 seconds timeout
+        
         const checkData = () => {
+            attempts++;
             if (window.jdata && window.jdata.features) {
+                console.log('✅ APT data loaded successfully, initializing autocomplete');
                 this.extractSuggestions();
                 this.initializeInputs();
-            } else {
+            } else if (attempts < maxAttempts) {
                 setTimeout(checkData, 100);
+            } else {
+                console.error('❌ Failed to load APT data after 5 seconds');
+                this.showDataLoadError();
             }
         };
         checkData();
+    }
+
+    showDataLoadError() {
+        const searchInputs = ['searchAPTname', 'searchLocation', 'searchTarget', 'searchTargetcategory', 'searchTool'];
+        searchInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.placeholder = 'Data unavailable - please refresh page';
+                input.disabled = true;
+                input.setAttribute('aria-describedby', inputId + '-error');
+                
+                // Add error message
+                const errorMsg = document.createElement('small');
+                errorMsg.id = inputId + '-error';
+                errorMsg.className = 'error-message';
+                errorMsg.textContent = 'Unable to load suggestion data. Please refresh the page.';
+                errorMsg.setAttribute('role', 'alert');
+                input.parentNode.appendChild(errorMsg);
+            }
+        });
     }
 
     extractSuggestions() {
@@ -1772,18 +1830,33 @@ class AutocompleteSearch {
     showSuggestions(suggestions, dropdown, input) {
         if (suggestions.length === 0) {
             this.hideDropdown(dropdown);
+            this.announceToScreenReader('No suggestions available');
             return;
         }
 
         dropdown.innerHTML = suggestions
             .map((suggestion, index) => 
-                `<div class="autocomplete-item" data-index="${index}">${suggestion}</div>`
+                `<div class="autocomplete-item" 
+                      data-index="${index}" 
+                      role="option" 
+                      aria-selected="false"
+                      tabindex="-1">${suggestion}</div>`
             )
             .join('');
 
         dropdown.style.display = 'block';
+        dropdown.setAttribute('role', 'listbox');
+        dropdown.setAttribute('aria-label', `${suggestions.length} suggestions available`);
+        
         this.currentDropdown = dropdown;
         this.currentIndex = -1;
+        
+        // Update input ARIA attributes
+        input.setAttribute('aria-expanded', 'true');
+        input.setAttribute('aria-activedescendant', '');
+        
+        // Announce to screen reader
+        this.announceToScreenReader(`${suggestions.length} suggestions available. Use arrow keys to navigate.`);
 
         // Add click listeners
         dropdown.querySelectorAll('.autocomplete-item').forEach((item, index) => {
@@ -1842,8 +1915,38 @@ class AutocompleteSearch {
 
     hideDropdown(dropdown) {
         dropdown.style.display = 'none';
+        dropdown.removeAttribute('role');
+        dropdown.removeAttribute('aria-label');
+        
+        // Update associated input
+        const inputId = dropdown.id.replace('-dropdown', '');
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.setAttribute('aria-expanded', 'false');
+            input.removeAttribute('aria-activedescendant');
+        }
+        
         this.currentDropdown = null;
         this.currentIndex = -1;
+    }
+
+    announceToScreenReader(message) {
+        // Create or update live region for screen reader announcements
+        let liveRegion = document.getElementById('autocomplete-announcements');
+        if (!liveRegion) {
+            liveRegion = document.createElement('div');
+            liveRegion.id = 'autocomplete-announcements';
+            liveRegion.setAttribute('aria-live', 'polite');
+            liveRegion.setAttribute('aria-atomic', 'true');
+            liveRegion.className = 'sr-only';
+            document.body.appendChild(liveRegion);
+        }
+        
+        // Clear and set new message
+        liveRegion.textContent = '';
+        setTimeout(() => {
+            liveRegion.textContent = message;
+        }, 100);
     }
 }
 
@@ -1858,40 +1961,60 @@ document.addEventListener('DOMContentLoaded', () => {
 		
   </div>
   
-  <div id="search-container">
+  <div id="search-container" role="dialog" aria-labelledby="search-title" aria-hidden="true">
   <div id="searchDiv">
-  <button id="close-search" class="esri-icon-close"></button>
-		<div><img src="images/Eagle Eye logo.png" /> </div> 
+  <button id="close-search" class="esri-icon-close" aria-label="Close search panel" title="Close search (Esc)"></button>
+		<div><img src="images/Eagle Eye logo.png" alt="EaglEye Logo" /> </div> 
 		<div>		
-		<h1>Search</h1>
-		<div id="searchPnl">APT Name: 
-		<div class="autocomplete-container">
-			<input type="text" id="searchAPTname" name="searchAPTname">
+		<h1 id="search-title">Search</h1>
+		<form id="searchPnl" role="search" aria-label="APT Search Form">
+			<label for="searchAPTname">APT Name:</label>
+			<div class="autocomplete-container">
+				<input type="text" id="searchAPTname" name="searchAPTname" aria-describedby="searchAPTname-help" autocomplete="off">
 			<div id="searchAPTname-dropdown" class="autocomplete-dropdown"></div>
-		</div><br><br>
-		Location: 
+			</div>
+			<small id="searchAPTname-help" class="sr-only">Start typing to see suggested APT group names</small>
+		<br><br>
+		
+		<label for="searchLocation">Location:</label>
 		<div class="autocomplete-container">
-			<input type="text" id="searchLocation" name="searchLocation">
+			<input type="text" id="searchLocation" name="searchLocation" aria-describedby="searchLocation-help" autocomplete="off">
 			<div id="searchLocation-dropdown" class="autocomplete-dropdown"></div>
-		</div><br><br>
-		Target: 
-		<div class="autocomplete-container">
-			<input type="text" id="searchTarget" name="searchTarget">
-			<div id="searchTarget-dropdown" class="autocomplete-dropdown"></div>
-		</div><br><br>
-		Target category: 
-		<div class="autocomplete-container">
-			<input type="text" id="searchTargetcategory" name="searchTargetcategory">
-			<div id="searchTargetcategory-dropdown" class="autocomplete-dropdown"></div>
-		</div><br><br>
-		Tool: 
-		<div class="autocomplete-container">
-			<input type="text" id="searchTool" name="searchTool">
-			<div id="searchTool-dropdown" class="autocomplete-dropdown"></div>
-		</div><br><br>
-		<input type="button" id="btnsearch" name="btnsearch" value="Search" onclick="btnSearchClick()">
-		<button onclick="clearSearch()">Clear</button>
 		</div>
+		<small id="searchLocation-help" class="sr-only">Enter country or region to filter APTs by location</small>
+		<br><br>
+		
+		<label for="searchTarget">Target:</label>
+		<div class="autocomplete-container">
+			<input type="text" id="searchTarget" name="searchTarget" aria-describedby="searchTarget-help" autocomplete="off">
+			<div id="searchTarget-dropdown" class="autocomplete-dropdown"></div>
+		</div>
+		<small id="searchTarget-help" class="sr-only">Search for specific target organizations or entities</small>
+		<br><br>
+		
+		<label for="searchTargetcategory">Target category:</label>
+		<div class="autocomplete-container">
+			<input type="text" id="searchTargetcategory" name="searchTargetcategory" aria-describedby="searchTargetcategory-help" autocomplete="off">
+			<div id="searchTargetcategory-dropdown" class="autocomplete-dropdown"></div>
+		</div>
+		<small id="searchTargetcategory-help" class="sr-only">Filter by target sector (government, military, financial, etc.)</small>
+		<br><br>
+		
+		<label for="searchTool">Tool:</label>
+		<div class="autocomplete-container">
+			<input type="text" id="searchTool" name="searchTool" aria-describedby="searchTool-help" autocomplete="off">
+			<div id="searchTool-dropdown" class="autocomplete-dropdown"></div>
+		</div>
+		<small id="searchTool-help" class="sr-only">Search for malware tools and techniques used by APT groups</small>
+		<br><br>
+		
+		<button type="submit" id="btnsearch" name="btnsearch" onclick="btnSearchClick()" aria-label="Execute search with current filters">
+			<i class="fa fa-search" aria-hidden="true"></i> Search
+		</button>
+		<button type="button" onclick="clearSearch()" aria-label="Clear all search fields">
+			<i class="fa fa-eraser" aria-hidden="true"></i> Clear
+		</button>
+		</form>
 		<ol id="searchPlaceHolder">
 		</ol>
 		</div>

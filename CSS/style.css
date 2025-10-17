@@ -1272,3 +1272,101 @@ margin:5px;}
 #filter-panel:not(.hidden) {
   animation: slideIn 0.3s ease-out;
 }
+
+/* ===== ACCESSIBILITY IMPROVEMENTS ===== */
+
+/* Screen reader only text */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Enhanced focus indicators for better keyboard navigation */
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid #00ffff !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.3) !important;
+}
+
+/* Error message styling */
+.error-message {
+  color: #ff6b6b !important;
+  font-size: 0.875em !important;
+  display: block !important;
+  margin-top: 4px !important;
+  font-weight: 500 !important;
+}
+
+/* Enhanced button styling for accessibility */
+button[aria-label] {
+  position: relative;
+}
+
+button[aria-label]:hover::after {
+  content: attr(aria-label);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: #00ffff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+/* Enhanced autocomplete accessibility */
+.autocomplete-item[aria-selected="true"] {
+  background-color: #00ffff !important;
+  color: #000 !important;
+}
+
+/* Form label improvements */
+label {
+  display: block !important;
+  font-weight: 600 !important;
+  margin-bottom: 4px !important;
+  color: #ffffff !important;
+}
+
+/* Help text styling */
+small[id$="-help"] {
+  color: #cccccc !important;
+  font-size: 0.8em !important;
+  font-style: italic !important;
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode improvements */
+@media (prefers-contrast: high) {
+  .autocomplete-item {
+    border: 1px solid #ffffff !important;
+  }
+  
+  button {
+    border: 2px solid #00ffff !important;
+  }
+}
