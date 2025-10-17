@@ -1621,6 +1621,236 @@ function clearSearch()
 	document.getElementById("searchLocation").value="";
 
 }
+
+// Enhanced Search Autocomplete Functionality
+class AutocompleteSearch {
+    constructor() {
+        this.suggestions = {
+            aptNames: [],
+            locations: [],
+            targets: [],
+            targetCategories: [],
+            tools: []
+        };
+        this.currentIndex = -1;
+        this.currentDropdown = null;
+        this.initializeAfterDataLoad();
+    }
+
+    async initializeAfterDataLoad() {
+        // Wait for jdata to be loaded
+        const checkData = () => {
+            if (window.jdata && window.jdata.features) {
+                this.extractSuggestions();
+                this.initializeInputs();
+            } else {
+                setTimeout(checkData, 100);
+            }
+        };
+        checkData();
+    }
+
+    extractSuggestions() {
+        const features = window.jdata.features;
+        const aptNamesSet = new Set();
+        const locationsSet = new Set();
+        const targetsSet = new Set();
+        const targetCategoriesSet = new Set();
+        const toolsSet = new Set();
+
+        features.forEach(feature => {
+            const props = feature.properties;
+            
+            // APT Names
+            if (props.name) {
+                aptNamesSet.add(props.name);
+            }
+            if (props['other-names']) {
+                props['other-names'].forEach(name => aptNamesSet.add(name));
+            }
+            
+            // Locations
+            if (props.location) {
+                locationsSet.add(props.location);
+            }
+            
+            // Targets
+            if (props.targets) {
+                props.targets.forEach(target => targetsSet.add(target));
+            }
+            
+            // Target Categories
+            if (props['target-categories']) {
+                props['target-categories'].forEach(cat => targetCategoriesSet.add(cat));
+            }
+            
+            // Tools
+            if (props.tools) {
+                props.tools.forEach(tool => toolsSet.add(tool));
+            }
+        });
+
+        this.suggestions.aptNames = Array.from(aptNamesSet).sort();
+        this.suggestions.locations = Array.from(locationsSet).sort();
+        this.suggestions.targets = Array.from(targetsSet).sort();
+        this.suggestions.targetCategories = Array.from(targetCategoriesSet).sort();
+        this.suggestions.tools = Array.from(toolsSet).sort();
+    }
+
+    initializeInputs() {
+        const inputs = [
+            { id: 'searchAPTname', suggestions: this.suggestions.aptNames },
+            { id: 'searchLocation', suggestions: this.suggestions.locations },
+            { id: 'searchTarget', suggestions: this.suggestions.targets },
+            { id: 'searchTargetcategory', suggestions: this.suggestions.targetCategories },
+            { id: 'searchTool', suggestions: this.suggestions.tools }
+        ];
+
+        inputs.forEach(input => {
+            const element = document.getElementById(input.id);
+            const dropdown = document.getElementById(`${input.id}-dropdown`);
+            
+            element.addEventListener('input', (e) => this.handleInput(e, input.suggestions, dropdown));
+            element.addEventListener('keydown', (e) => this.handleKeydown(e, dropdown));
+            element.addEventListener('blur', (e) => this.handleBlur(e, dropdown));
+            element.addEventListener('focus', (e) => this.handleFocus(e, input.suggestions, dropdown));
+        });
+    }
+
+    handleInput(event, suggestions, dropdown) {
+        const input = event.target;
+        const value = input.value.toLowerCase();
+        
+        if (value.length === 0) {
+            this.hideDropdown(dropdown);
+            return;
+        }
+        
+        const matches = this.fuzzySearch(value, suggestions);
+        this.showSuggestions(matches.slice(0, 8), dropdown, input);
+    }
+
+    handleFocus(event, suggestions, dropdown) {
+        const input = event.target;
+        const value = input.value.toLowerCase();
+        
+        if (value.length > 0) {
+            const matches = this.fuzzySearch(value, suggestions);
+            this.showSuggestions(matches.slice(0, 8), dropdown, input);
+        }
+    }
+
+    fuzzySearch(query, suggestions) {
+        return suggestions
+            .map(suggestion => ({
+                item: suggestion,
+                score: this.calculateScore(query, suggestion.toLowerCase())
+            }))
+            .filter(result => result.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .map(result => result.item);
+    }
+
+    calculateScore(query, target) {
+        if (target.includes(query)) {
+            return target.startsWith(query) ? 100 : 50;
+        }
+        
+        let score = 0;
+        let queryIndex = 0;
+        
+        for (let i = 0; i < target.length && queryIndex < query.length; i++) {
+            if (target[i] === query[queryIndex]) {
+                score += 1;
+                queryIndex++;
+            }
+        }
+        
+        return queryIndex === query.length ? score : 0;
+    }
+
+    showSuggestions(suggestions, dropdown, input) {
+        if (suggestions.length === 0) {
+            this.hideDropdown(dropdown);
+            return;
+        }
+
+        dropdown.innerHTML = suggestions
+            .map((suggestion, index) => 
+                `<div class="autocomplete-item" data-index="${index}">${suggestion}</div>`
+            )
+            .join('');
+
+        dropdown.style.display = 'block';
+        this.currentDropdown = dropdown;
+        this.currentIndex = -1;
+
+        // Add click listeners
+        dropdown.querySelectorAll('.autocomplete-item').forEach((item, index) => {
+            item.addEventListener('click', () => {
+                input.value = suggestions[index];
+                this.hideDropdown(dropdown);
+                input.focus();
+            });
+        });
+    }
+
+    handleKeydown(event, dropdown) {
+        const items = dropdown.querySelectorAll('.autocomplete-item');
+        
+        if (items.length === 0) return;
+
+        switch (event.key) {
+            case 'ArrowDown':
+                event.preventDefault();
+                this.currentIndex = Math.min(this.currentIndex + 1, items.length - 1);
+                this.updateSelection(items);
+                break;
+                
+            case 'ArrowUp':
+                event.preventDefault();
+                this.currentIndex = Math.max(this.currentIndex - 1, -1);
+                this.updateSelection(items);
+                break;
+                
+            case 'Enter':
+                event.preventDefault();
+                if (this.currentIndex >= 0) {
+                    event.target.value = items[this.currentIndex].textContent;
+                    this.hideDropdown(dropdown);
+                }
+                break;
+                
+            case 'Escape':
+                this.hideDropdown(dropdown);
+                break;
+        }
+    }
+
+    updateSelection(items) {
+        items.forEach((item, index) => {
+            item.classList.toggle('selected', index === this.currentIndex);
+        });
+    }
+
+    handleBlur(event, dropdown) {
+        // Delay hiding to allow clicks on dropdown items
+        setTimeout(() => {
+            this.hideDropdown(dropdown);
+        }, 150);
+    }
+
+    hideDropdown(dropdown) {
+        dropdown.style.display = 'none';
+        this.currentDropdown = null;
+        this.currentIndex = -1;
+    }
+}
+
+// Initialize autocomplete when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    window.autocompleteSearch = new AutocompleteSearch();
+});
 		
 		
 		</script>
@@ -1634,11 +1864,31 @@ function clearSearch()
 		<div><img src="images/Eagle Eye logo.png" /> </div> 
 		<div>		
 		<h1>Search</h1>
-		<div id"searchPnl">APT Name: <input type="text" id="searchAPTname" name="searchAPTname"><br><br>
-		Location: <input type="text" id="searchLocation" name="searchLocation"><br><br>
-		Target: <input type="text" id="searchTarget" name="searchTarget"><br><br>
-		Target category: <input type="text" id="searchTargetcategory" name="searchTargetcategory"><br><br>
-		Tool: <input type="text" id="searchTool" name="searchTool"><br><br>
+		<div id"searchPnl">APT Name: 
+		<div class="autocomplete-container">
+			<input type="text" id="searchAPTname" name="searchAPTname">
+			<div id="searchAPTname-dropdown" class="autocomplete-dropdown"></div>
+		</div><br><br>
+		Location: 
+		<div class="autocomplete-container">
+			<input type="text" id="searchLocation" name="searchLocation">
+			<div id="searchLocation-dropdown" class="autocomplete-dropdown"></div>
+		</div><br><br>
+		Target: 
+		<div class="autocomplete-container">
+			<input type="text" id="searchTarget" name="searchTarget">
+			<div id="searchTarget-dropdown" class="autocomplete-dropdown"></div>
+		</div><br><br>
+		Target category: 
+		<div class="autocomplete-container">
+			<input type="text" id="searchTargetcategory" name="searchTargetcategory">
+			<div id="searchTargetcategory-dropdown" class="autocomplete-dropdown"></div>
+		</div><br><br>
+		Tool: 
+		<div class="autocomplete-container">
+			<input type="text" id="searchTool" name="searchTool">
+			<div id="searchTool-dropdown" class="autocomplete-dropdown"></div>
+		</div><br><br>
 		<input type="button" id="btnsearch" name="btnsearch" value="Search" onclick="btnSearchClick()">
 		<button onclick="clearSearch()">Clear</button>
 		</div>
