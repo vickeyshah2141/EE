@@ -1665,6 +1665,136 @@ function clearSearch()
     </div>
 	</div>
   </div>
+
+  <!-- Data Filter Sidebar -->
+  <div id="filter-sidebar">
+    <button id="filter-toggle" title="Toggle Filters">
+      <i class="fa fa-filter"></i>
+    </button>
+    <div id="filter-panel" class="hidden">
+      <div class="filter-header">
+        <h2><i class="fa fa-filter"></i> Filters</h2>
+        <button id="close-filter" class="esri-icon-close"></button>
+      </div>
+      
+      <div class="filter-content">
+        <!-- Date Range Filter -->
+        <div class="filter-group">
+          <h3><i class="fa fa-calendar"></i> Date Range</h3>
+          <div class="date-inputs">
+            <label>From:</label>
+            <select id="filter-year-from">
+              <option value="">All Years</option>
+              <option value="2010">2010</option>
+              <option value="2011">2011</option>
+              <option value="2012">2012</option>
+              <option value="2013">2013</option>
+              <option value="2014">2014</option>
+              <option value="2015">2015</option>
+              <option value="2016">2016</option>
+              <option value="2017">2017</option>
+              <option value="2018">2018</option>
+              <option value="2019">2019</option>
+              <option value="2020">2020</option>
+              <option value="2021">2021</option>
+              <option value="2022">2022</option>
+              <option value="2023">2023</option>
+              <option value="2024">2024</option>
+            </select>
+            <label>To:</label>
+            <select id="filter-year-to">
+              <option value="">All Years</option>
+              <option value="2010">2010</option>
+              <option value="2011">2011</option>
+              <option value="2012">2012</option>
+              <option value="2013">2013</option>
+              <option value="2014">2014</option>
+              <option value="2015">2015</option>
+              <option value="2016">2016</option>
+              <option value="2017">2017</option>
+              <option value="2018">2018</option>
+              <option value="2019">2019</option>
+              <option value="2020">2020</option>
+              <option value="2021">2021</option>
+              <option value="2022">2022</option>
+              <option value="2023">2023</option>
+              <option value="2024">2024</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Country/Region Filter -->
+        <div class="filter-group">
+          <h3><i class="fa fa-globe"></i> Country/Region</h3>
+          <div class="checkbox-group" id="country-filters">
+            <label><input type="checkbox" value="China" checked> China</label>
+            <label><input type="checkbox" value="Russia" checked> Russia</label>
+            <label><input type="checkbox" value="North Korea" checked> North Korea</label>
+            <label><input type="checkbox" value="Iran" checked> Iran</label>
+            <label><input type="checkbox" value="United States" checked> United States</label>
+            <label><input type="checkbox" value="Israel" checked> Israel</label>
+            <label><input type="checkbox" value="India" checked> India</label>
+            <label><input type="checkbox" value="Pakistan" checked> Pakistan</label>
+            <label><input type="checkbox" value="Unknown" checked> Unknown</label>
+            <div class="show-more">
+              <button id="show-more-countries">Show More Countries</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- APT Category Filter -->
+        <div class="filter-group">
+          <h3><i class="fa fa-tags"></i> APT Categories</h3>
+          <div class="checkbox-group">
+            <label><input type="checkbox" value="Nation State" checked> Nation State</label>
+            <label><input type="checkbox" value="Cybercriminal" checked> Cybercriminal</label>
+            <label><input type="checkbox" value="Hacktivist" checked> Hacktivist</label>
+            <label><input type="checkbox" value="Financial" checked> Financial</label>
+            <label><input type="checkbox" value="Espionage" checked> Espionage</label>
+          </div>
+        </div>
+
+        <!-- Target Sector Filter -->
+        <div class="filter-group">
+          <h3><i class="fa fa-building"></i> Target Sectors</h3>
+          <div class="checkbox-group">
+            <label><input type="checkbox" value="Government" checked> Government</label>
+            <label><input type="checkbox" value="Military" checked> Military</label>
+            <label><input type="checkbox" value="Financial" checked> Financial</label>
+            <label><input type="checkbox" value="Healthcare" checked> Healthcare</label>
+            <label><input type="checkbox" value="Technology" checked> Technology</label>
+            <label><input type="checkbox" value="Education" checked> Education</label>
+            <label><input type="checkbox" value="Energy" checked> Energy</label>
+            <label><input type="checkbox" value="Media" checked> Media</label>
+          </div>
+        </div>
+
+        <!-- Active Status Filter -->
+        <div class="filter-group">
+          <h3><i class="fa fa-power-off"></i> Activity Status</h3>
+          <div class="radio-group">
+            <label><input type="radio" name="activity" value="all" checked> All</label>
+            <label><input type="radio" name="activity" value="active"> Active Only</label>
+            <label><input type="radio" name="activity" value="inactive"> Inactive Only</label>
+          </div>
+        </div>
+
+        <!-- Filter Actions -->
+        <div class="filter-actions">
+          <button id="apply-filters" class="btn-primary">
+            <i class="fa fa-check"></i> Apply Filters
+          </button>
+          <button id="reset-filters" class="btn-secondary">
+            <i class="fa fa-refresh"></i> Reset All
+          </button>
+          <div class="filter-count">
+            <span id="filtered-count">0</span> APTs match your filters
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
  <script>
  setTimeout(function(){
  
@@ -1703,7 +1833,300 @@ function clearSearch()
 Search();
 	}
 }, 6000);
- 
+
+// Filter Sidebar Functionality
+let originalData = null;
+let filteredData = null;
+let isFilterPanelOpen = false;
+
+// Initialize filter sidebar
+document.addEventListener('DOMContentLoaded', function() {
+    initializeFilterSidebar();
+});
+
+function initializeFilterSidebar() {
+    // Store original data when it's loaded
+    setTimeout(() => {
+        if (jdata && jdata.features) {
+            originalData = [...jdata.features];
+            filteredData = [...jdata.features];
+            updateFilterCount();
+        }
+    }, 1000);
+
+    // Filter toggle button
+    const filterToggle = document.getElementById('filter-toggle');
+    const filterPanel = document.getElementById('filter-panel');
+    const closeFilter = document.getElementById('close-filter');
+
+    filterToggle.addEventListener('click', function() {
+        toggleFilterPanel();
+    });
+
+    closeFilter.addEventListener('click', function() {
+        closeFilterPanel();
+    });
+
+    // Apply filters button
+    document.getElementById('apply-filters').addEventListener('click', function() {
+        applyFilters();
+    });
+
+    // Reset filters button
+    document.getElementById('reset-filters').addEventListener('click', function() {
+        resetFilters();
+    });
+
+    // Show more countries button
+    document.getElementById('show-more-countries').addEventListener('click', function() {
+        showMoreCountries();
+    });
+
+    // Real-time filtering for checkboxes and radio buttons
+    const checkboxes = document.querySelectorAll('#filter-panel input[type="checkbox"]');
+    const radios = document.querySelectorAll('#filter-panel input[type="radio"]');
+    const selects = document.querySelectorAll('#filter-panel select');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', debounce(applyFilters, 300));
+    });
+
+    radios.forEach(radio => {
+        radio.addEventListener('change', applyFilters);
+    });
+
+    selects.forEach(select => {
+        select.addEventListener('change', applyFilters);
+    });
+}
+
+function toggleFilterPanel() {
+    const filterPanel = document.getElementById('filter-panel');
+    isFilterPanelOpen = !isFilterPanelOpen;
+    
+    if (isFilterPanelOpen) {
+        filterPanel.classList.remove('hidden');
+    } else {
+        filterPanel.classList.add('hidden');
+    }
+}
+
+function closeFilterPanel() {
+    document.getElementById('filter-panel').classList.add('hidden');
+    isFilterPanelOpen = false;
+}
+
+function applyFilters() {
+    if (!originalData) return;
+
+    let filtered = [...originalData];
+
+    // Date range filter
+    const yearFrom = document.getElementById('filter-year-from').value;
+    const yearTo = document.getElementById('filter-year-to').value;
+
+    if (yearFrom || yearTo) {
+        filtered = filtered.filter(feature => {
+            const aptYear = extractYearFromAPT(feature);
+            if (!aptYear) return true; // Include if we can't determine year
+            
+            if (yearFrom && aptYear < parseInt(yearFrom)) return false;
+            if (yearTo && aptYear > parseInt(yearTo)) return false;
+            return true;
+        });
+    }
+
+    // Country filter
+    const selectedCountries = getSelectedCheckboxValues('#country-filters input[type="checkbox"]:checked');
+    if (selectedCountries.length > 0) {
+        filtered = filtered.filter(feature => {
+            const country = extractCountryFromAPT(feature);
+            return selectedCountries.includes(country) || selectedCountries.includes('Unknown');
+        });
+    }
+
+    // APT Category filter (based on name patterns and descriptions)
+    const selectedCategories = getSelectedCheckboxValues('#filter-panel .filter-group:nth-child(3) input[type="checkbox"]:checked');
+    if (selectedCategories.length > 0) {
+        filtered = filtered.filter(feature => {
+            const category = categorizeAPT(feature);
+            return selectedCategories.includes(category);
+        });
+    }
+
+    // Target Sector filter
+    const selectedSectors = getSelectedCheckboxValues('#filter-panel .filter-group:nth-child(4) input[type="checkbox"]:checked');
+    if (selectedSectors.length > 0) {
+        filtered = filtered.filter(feature => {
+            const targets = extractTargetsFromAPT(feature);
+            return selectedSectors.some(sector => 
+                targets.toLowerCase().includes(sector.toLowerCase())
+            );
+        });
+    }
+
+    // Activity Status filter
+    const activityStatus = document.querySelector('input[name="activity"]:checked').value;
+    if (activityStatus !== 'all') {
+        filtered = filtered.filter(feature => {
+            const isActive = determineActivityStatus(feature);
+            return activityStatus === 'active' ? isActive : !isActive;
+        });
+    }
+
+    filteredData = filtered;
+    updateFilterCount();
+    updateMapWithFilters(filtered);
+}
+
+function resetFilters() {
+    // Reset all form controls
+    document.getElementById('filter-year-from').value = '';
+    document.getElementById('filter-year-to').value = '';
+    
+    // Check all country checkboxes
+    document.querySelectorAll('#country-filters input[type="checkbox"]').forEach(cb => {
+        cb.checked = true;
+    });
+    
+    // Check all category and sector checkboxes
+    document.querySelectorAll('#filter-panel .filter-group input[type="checkbox"]').forEach(cb => {
+        cb.checked = true;
+    });
+    
+    // Set activity to 'all'
+    document.querySelector('input[name="activity"][value="all"]').checked = true;
+    
+    // Reset to original data
+    if (originalData) {
+        filteredData = [...originalData];
+        updateFilterCount();
+        updateMapWithFilters(filteredData);
+    }
+}
+
+function getSelectedCheckboxValues(selector) {
+    const checkboxes = document.querySelectorAll(selector);
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function updateFilterCount() {
+    const count = filteredData ? filteredData.length : 0;
+    document.getElementById('filtered-count').textContent = count;
+}
+
+function updateMapWithFilters(filtered) {
+    // Update the global jdata object with filtered results
+    if (jdata) {
+        jdata.features = filtered;
+        
+        // Trigger map update by calling the existing refresh functionality
+        if (typeof extremesLayer !== 'undefined' && extremesLayer.refresh) {
+            extremesLayer.refresh();
+        }
+        
+        // Also update search results if search panel is open
+        if (document.getElementById('search-container').style.display !== 'none') {
+            Search();
+        }
+    }
+}
+
+// Helper functions to extract information from APT data
+function extractYearFromAPT(feature) {
+    // Try to extract year from description or other properties
+    const description = feature.properties.description || '';
+    const yearMatch = description.match(/\b(19|20)\d{2}\b/);
+    return yearMatch ? parseInt(yearMatch[0]) : null;
+}
+
+function extractCountryFromAPT(feature) {
+    // Extract country from properties
+    const country = feature.properties.country || feature.properties.location || 'Unknown';
+    return country;
+}
+
+function categorizeAPT(feature) {
+    const name = (feature.properties.name || '').toLowerCase();
+    const description = (feature.properties.description || '').toLowerCase();
+    
+    if (name.includes('government') || description.includes('state-sponsored') || description.includes('nation state')) {
+        return 'Nation State';
+    }
+    if (name.includes('crime') || description.includes('financial') || description.includes('banking')) {
+        return 'Financial';
+    }
+    if (description.includes('hacktivist') || description.includes('activist')) {
+        return 'Hacktivist';
+    }
+    if (description.includes('espionage') || description.includes('intelligence')) {
+        return 'Espionage';
+    }
+    return 'Nation State'; // Default category
+}
+
+function extractTargetsFromAPT(feature) {
+    return feature.properties.targets || feature.properties.target || '';
+}
+
+function determineActivityStatus(feature) {
+    // Simple heuristic: assume more recent groups or those with recent updates are active
+    const description = (feature.properties.description || '').toLowerCase();
+    const currentYear = new Date().getFullYear();
+    const recentYears = [currentYear, currentYear - 1, currentYear - 2];
+    
+    return recentYears.some(year => description.includes(year.toString()));
+}
+
+function showMoreCountries() {
+    const button = document.getElementById('show-more-countries');
+    const countryFilters = document.getElementById('country-filters');
+    
+    // Add more countries
+    const additionalCountries = [
+        'France', 'Germany', 'United Kingdom', 'Japan', 'South Korea', 
+        'Australia', 'Canada', 'Brazil', 'Turkey', 'Saudi Arabia',
+        'UAE', 'Lebanon', 'Syria', 'Vietnam', 'Spain'
+    ];
+    
+    additionalCountries.forEach(country => {
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" value="${country}" checked> ${country}`;
+        countryFilters.insertBefore(label, button.parentElement);
+    });
+    
+    button.style.display = 'none';
+}
+
+// Debounce function to prevent too frequent filtering
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Toggle filter panel with 'F' key
+    if (e.key === 'f' || e.key === 'F') {
+        if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
+            e.preventDefault();
+            toggleFilterPanel();
+        }
+    }
+    
+    // Close filter panel with Escape key
+    if (e.key === 'Escape' && isFilterPanelOpen) {
+        closeFilterPanel();
+    }
+});
+
  </script>
 </body>
 </html>
