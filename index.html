@@ -1485,6 +1485,17 @@ function Search()
 		<h3>APT Malware</h3>
 	</button>
 	
+	<!-- Theme Toggle Button -->
+	<button id="theme-toggle" role="button" aria-label="Switch between dark and light theme" title="Toggle Theme (T)" tabindex="0">
+		<i class="fa fa-moon-o" aria-hidden="true"></i>
+		<span class="theme-text">Dark</span>
+	</button>
+	
+	<!-- Keyboard Shortcuts Help Button -->
+	<button id="shortcuts-help" role="button" aria-label="Show keyboard shortcuts help" title="Keyboard Shortcuts (?)">
+		<i class="fa fa-question-circle" aria-hidden="true"></i>
+	</button>
+	
 	
   </div>
   <div id="container">
@@ -1950,9 +1961,313 @@ class AutocompleteSearch {
     }
 }
 
-// Initialize autocomplete when DOM is ready
+// Theme Management System
+class ThemeManager {
+    constructor() {
+        this.currentTheme = 'dark'; // Default theme
+        this.themeToggleBtn = null;
+        this.themeIcon = null;
+        this.themeText = null;
+        this.init();
+    }
+
+    init() {
+        // Load saved theme preference
+        this.loadThemePreference();
+        
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.setupThemeToggle());
+        } else {
+            this.setupThemeToggle();
+        }
+    }
+
+    setupThemeToggle() {
+        this.themeToggleBtn = document.getElementById('theme-toggle');
+        
+        if (this.themeToggleBtn) {
+            this.themeIcon = this.themeToggleBtn.querySelector('.fa');
+            this.themeText = this.themeToggleBtn.querySelector('.theme-text');
+            
+            // Set initial theme
+            this.applyTheme(this.currentTheme, false);
+            
+            // Add click event listener
+            this.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
+            
+            // Add keyboard shortcut (T key)
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 't' || e.key === 'T') {
+                    if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
+                        // Only if not focused on input fields
+                        const activeElement = document.activeElement;
+                        if (!activeElement || (activeElement.tagName !== 'INPUT' && activeElement.tagName !== 'TEXTAREA')) {
+                            e.preventDefault();
+                            this.toggleTheme();
+                        }
+                    }
+                }
+            });
+            
+            console.log('✅ Theme manager initialized');
+        }
+    }
+
+    toggleTheme() {
+        const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+        this.applyTheme(newTheme, true);
+        this.announceThemeChange(newTheme);
+    }
+
+    applyTheme(theme, savePreference = true) {
+        this.currentTheme = theme;
+        
+        // Update CSS custom properties for theme
+        const root = document.documentElement;
+        
+        if (theme === 'light') {
+            // Light theme colors
+            root.style.setProperty('--bg-primary', '#ffffff');
+            root.style.setProperty('--bg-secondary', '#f5f5f5');
+            root.style.setProperty('--bg-tertiary', '#e0e0e0');
+            root.style.setProperty('--text-primary', '#333333');
+            root.style.setProperty('--text-secondary', '#666666');
+            root.style.setProperty('--text-muted', '#999999');
+            root.style.setProperty('--accent-primary', '#0066cc');
+            root.style.setProperty('--accent-secondary', '#004499');
+            root.style.setProperty('--border-color', '#cccccc');
+            root.style.setProperty('--shadow-color', 'rgba(0, 0, 0, 0.1)');
+            root.style.setProperty('--bg-gradient', 'radial-gradient(#f0f0f0, #ffffff)');
+            
+            // Update body background for light theme
+            document.body.style.background = 'radial-gradient(#f0f0f0, #ffffff)';
+        } else {
+            // Dark theme colors (default)
+            root.style.setProperty('--bg-primary', '#333333');
+            root.style.setProperty('--bg-secondary', '#2a2a2a');
+            root.style.setProperty('--bg-tertiary', '#1a1a1a');
+            root.style.setProperty('--text-primary', '#ffffff');
+            root.style.setProperty('--text-secondary', '#cccccc');
+            root.style.setProperty('--text-muted', '#888888');
+            root.style.setProperty('--accent-primary', '#00ffff');
+            root.style.setProperty('--accent-secondary', '#00cccc');
+            root.style.setProperty('--border-color', '#555555');
+            root.style.setProperty('--shadow-color', 'rgba(0, 255, 255, 0.1)');
+            root.style.setProperty('--bg-gradient', 'radial-gradient(#333333, #000000)');
+            
+            // Update body background for dark theme
+            document.body.style.background = 'radial-gradient(#333333, #000000)';
+        }
+
+        // Update button appearance
+        this.updateThemeButton(theme);
+        
+        // Add theme class to body
+        document.body.className = document.body.className.replace(/theme-(light|dark)/g, '').trim();
+        document.body.classList.add(`theme-${theme}`);
+
+        // Save preference
+        if (savePreference) {
+            this.saveThemePreference(theme);
+        }
+
+        console.log(`🎨 Theme switched to: ${theme}`);
+    }
+
+    updateThemeButton(theme) {
+        if (!this.themeIcon || !this.themeText) return;
+        
+        if (theme === 'light') {
+            this.themeIcon.className = 'fa fa-sun-o';
+            this.themeText.textContent = 'Light';
+            this.themeToggleBtn.setAttribute('aria-label', 'Switch to dark theme');
+            this.themeToggleBtn.setAttribute('title', 'Switch to Dark Mode (T)');
+        } else {
+            this.themeIcon.className = 'fa fa-moon-o';
+            this.themeText.textContent = 'Dark';
+            this.themeToggleBtn.setAttribute('aria-label', 'Switch to light theme');
+            this.themeToggleBtn.setAttribute('title', 'Switch to Light Mode (T)');
+        }
+    }
+
+    saveThemePreference(theme) {
+        try {
+            localStorage.setItem('eagleye-theme-preference', theme);
+        } catch (e) {
+            console.warn('Could not save theme preference to localStorage');
+        }
+    }
+
+    loadThemePreference() {
+        try {
+            const saved = localStorage.getItem('eagleye-theme-preference');
+            if (saved && (saved === 'light' || saved === 'dark')) {
+                this.currentTheme = saved;
+            } else {
+                // Detect system preference
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                this.currentTheme = prefersDark ? 'dark' : 'light';
+            }
+        } catch (e) {
+            console.warn('Could not load theme preference from localStorage');
+            this.currentTheme = 'dark'; // Fallback to dark
+        }
+    }
+
+    announceThemeChange(theme) {
+        // Create announcement for screen readers
+        const announcement = `Theme switched to ${theme} mode`;
+        
+        // Use existing screen reader announcement system
+        if (window.autocompleteSearch && window.autocompleteSearch.announceToScreenReader) {
+            window.autocompleteSearch.announceToScreenReader(announcement);
+        } else {
+            // Fallback announcement method
+            let liveRegion = document.getElementById('theme-announcements');
+            if (!liveRegion) {
+                liveRegion = document.createElement('div');
+                liveRegion.id = 'theme-announcements';
+                liveRegion.setAttribute('aria-live', 'polite');
+                liveRegion.className = 'sr-only';
+                document.body.appendChild(liveRegion);
+            }
+            liveRegion.textContent = announcement;
+        }
+    }
+}
+
+// Keyboard Shortcuts Help System
+class KeyboardShortcutsManager {
+    constructor() {
+        this.modal = null;
+        this.isOpen = false;
+        this.init();
+    }
+
+    init() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.setupShortcuts());
+        } else {
+            this.setupShortcuts();
+        }
+    }
+
+    setupShortcuts() {
+        this.modal = document.getElementById('shortcuts-modal');
+        const helpButton = document.getElementById('shortcuts-help');
+        const closeButton = document.getElementById('close-shortcuts');
+
+        if (helpButton) {
+            helpButton.addEventListener('click', () => this.toggleModal());
+        }
+
+        if (closeButton) {
+            closeButton.addEventListener('click', () => this.closeModal());
+        }
+
+        // Global keyboard shortcuts
+        document.addEventListener('keydown', (e) => this.handleGlobalShortcuts(e));
+
+        // Close modal when clicking outside
+        if (this.modal) {
+            this.modal.addEventListener('click', (e) => {
+                if (e.target === this.modal) {
+                    this.closeModal();
+                }
+            });
+        }
+
+        console.log('✅ Keyboard shortcuts manager initialized');
+    }
+
+    handleGlobalShortcuts(e) {
+        const activeElement = document.activeElement;
+        const isInputFocused = activeElement && (
+            activeElement.tagName === 'INPUT' || 
+            activeElement.tagName === 'TEXTAREA' ||
+            activeElement.contentEditable === 'true'
+        );
+
+        // Don't trigger shortcuts when typing in input fields (except for Escape)
+        if (isInputFocused && e.key !== 'Escape') {
+            return;
+        }
+
+        switch (e.key) {
+            case '?':
+                if (!e.ctrlKey && !e.altKey && !e.shiftKey) {
+                    e.preventDefault();
+                    this.toggleModal();
+                }
+                break;
+                
+            case 'Escape':
+                if (this.isOpen) {
+                    e.preventDefault();
+                    this.closeModal();
+                }
+                break;
+        }
+    }
+
+    openModal() {
+        if (!this.modal) return;
+        
+        this.modal.style.display = 'flex';
+        this.modal.setAttribute('aria-hidden', 'false');
+        this.isOpen = true;
+        
+        // Focus the close button for accessibility
+        const closeButton = document.getElementById('close-shortcuts');
+        if (closeButton) {
+            setTimeout(() => closeButton.focus(), 100);
+        }
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+        
+        this.announceModalOpen();
+    }
+
+    closeModal() {
+        if (!this.modal) return;
+        
+        this.modal.style.display = 'none';
+        this.modal.setAttribute('aria-hidden', 'true');
+        this.isOpen = false;
+        
+        // Restore body scroll
+        document.body.style.overflow = '';
+        
+        // Return focus to help button
+        const helpButton = document.getElementById('shortcuts-help');
+        if (helpButton) {
+            helpButton.focus();
+        }
+    }
+
+    toggleModal() {
+        if (this.isOpen) {
+            this.closeModal();
+        } else {
+            this.openModal();
+        }
+    }
+
+    announceModalOpen() {
+        // Announce modal opening to screen readers
+        if (window.autocompleteSearch && window.autocompleteSearch.announceToScreenReader) {
+            window.autocompleteSearch.announceToScreenReader('Keyboard shortcuts help opened');
+        }
+    }
+}
+
+// Initialize all systems when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.autocompleteSearch = new AutocompleteSearch();
+    window.themeManager = new ThemeManager();
+    window.keyboardShortcuts = new KeyboardShortcutsManager();
 });
 		
 		
@@ -2020,6 +2335,90 @@ document.addEventListener('DOMContentLoaded', () => {
 		</div>
 	   </div>
     </div>
+    
+    <!-- Keyboard Shortcuts Help Modal -->
+    <div id="shortcuts-modal" class="modal-overlay" role="dialog" aria-labelledby="shortcuts-title" aria-hidden="true">
+        <div class="modal-content" role="document">
+            <div class="modal-header">
+                <h2 id="shortcuts-title">
+                    <i class="fa fa-keyboard-o" aria-hidden="true"></i>
+                    Keyboard Shortcuts
+                </h2>
+                <button id="close-shortcuts" class="modal-close" aria-label="Close shortcuts help">
+                    <i class="fa fa-times" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="shortcuts-grid">
+                    <div class="shortcut-category">
+                        <h3><i class="fa fa-map" aria-hidden="true"></i> Navigation</h3>
+                        <div class="shortcut-item">
+                            <kbd>Esc</kbd>
+                            <span>Close current panel/modal</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>?</kbd>
+                            <span>Show/hide this help</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>F</kbd>
+                            <span>Toggle filter panel</span>
+                        </div>
+                    </div>
+                    
+                    <div class="shortcut-category">
+                        <h3><i class="fa fa-search" aria-hidden="true"></i> Search</h3>
+                        <div class="shortcut-item">
+                            <kbd>↑</kbd> <kbd>↓</kbd>
+                            <span>Navigate autocomplete suggestions</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Enter</kbd>
+                            <span>Select autocomplete suggestion</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Tab</kbd>
+                            <span>Move to next search field</span>
+                        </div>
+                    </div>
+                    
+                    <div class="shortcut-category">
+                        <h3><i class="fa fa-paint-brush" aria-hidden="true"></i> Interface</h3>
+                        <div class="shortcut-item">
+                            <kbd>T</kbd>
+                            <span>Toggle dark/light theme</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Ctrl</kbd> + <kbd>F</kbd>
+                            <span>Browser search (find on page)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="shortcut-category">
+                        <h3><i class="fa fa-universal-access" aria-hidden="true"></i> Accessibility</h3>
+                        <div class="shortcut-item">
+                            <kbd>Tab</kbd>
+                            <span>Navigate focusable elements</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Shift</kbd> + <kbd>Tab</kbd>
+                            <span>Navigate backwards</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <kbd>Space</kbd> / <kbd>Enter</kbd>
+                            <span>Activate buttons/links</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="shortcuts-footer">
+                    <p><i class="fa fa-info-circle" aria-hidden="true"></i> 
+                    <strong>Pro Tip:</strong> This platform is fully accessible with screen readers and keyboard navigation.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
 	<div id="chart-container">
   <div id="chartDiv">
   <button id="close-chart" class="esri-icon-close"></button>

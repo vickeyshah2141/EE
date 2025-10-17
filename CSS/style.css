@@ -1370,3 +1370,377 @@ small[id$="-help"] {
     border: 2px solid #00ffff !important;
   }
 }
+
+/* ===== THEME SYSTEM ===== */
+
+/* CSS Custom Properties for Theme Support */
+:root {
+  --bg-primary: #333333;
+  --bg-secondary: #2a2a2a;
+  --bg-tertiary: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-muted: #888888;
+  --accent-primary: #00ffff;
+  --accent-secondary: #00cccc;
+  --border-color: #555555;
+  --shadow-color: rgba(0, 255, 255, 0.1);
+  --bg-gradient: radial-gradient(#333333, #000000);
+}
+
+/* Theme Toggle Button */
+#theme-toggle {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  z-index: 9999 !important;
+  background: var(--bg-secondary) !important;
+  border: 2px solid var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  padding: 10px 15px !important;
+  border-radius: 25px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  min-width: 90px !important;
+  justify-content: center !important;
+}
+
+#theme-toggle:hover {
+  background: var(--accent-primary) !important;
+  color: var(--bg-primary) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 15px var(--shadow-color) !important;
+}
+
+#theme-toggle:focus-visible {
+  outline: 3px solid var(--accent-primary) !important;
+  outline-offset: 3px !important;
+}
+
+#theme-toggle .fa {
+  font-size: 16px !important;
+  transition: transform 0.3s ease !important;
+}
+
+#theme-toggle:hover .fa {
+  transform: rotate(15deg) !important;
+}
+
+/* Light Theme Overrides */
+.theme-light {
+  background: radial-gradient(#f0f0f0, #ffffff) !important;
+}
+
+.theme-light #container,
+.theme-light #viewDiv {
+  background: transparent !important;
+}
+
+.theme-light #searchInputRes {
+  background-color: #f8f9fa !important;
+  color: #333333 !important;
+  border: 1px solid #dee2e6 !important;
+}
+
+.theme-light #searchInputRes a {
+  color: #666666 !important;
+}
+
+.theme-light .search-container {
+  background: rgba(248, 249, 250, 0.95) !important;
+  color: #333333 !important;
+}
+
+.theme-light .autocomplete-dropdown {
+  background: #ffffff !important;
+  border: 1px solid #dee2e6 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.theme-light .autocomplete-item {
+  color: #333333 !important;
+}
+
+.theme-light .autocomplete-item:hover,
+.theme-light .autocomplete-item[aria-selected="true"] {
+  background-color: #0066cc !important;
+  color: #ffffff !important;
+}
+
+.theme-light .filter-sidebar {
+  background: rgba(248, 249, 250, 0.95) !important;
+  color: #333333 !important;
+  border-right: 2px solid #0066cc !important;
+}
+
+.theme-light .filter-header {
+  background: #0066cc !important;
+  color: #ffffff !important;
+}
+
+.theme-light .filter-btn.primary {
+  background: #0066cc !important;
+  border-color: #0066cc !important;
+}
+
+.theme-light .filter-btn.primary:hover {
+  background: #004499 !important;
+  border-color: #004499 !important;
+}
+
+.theme-light .filter-btn.secondary {
+  background: #6c757d !important;
+  border-color: #6c757d !important;
+}
+
+.theme-light .filter-input,
+.theme-light .filter-select {
+  background: #ffffff !important;
+  color: #333333 !important;
+  border: 1px solid #ced4da !important;
+}
+
+.theme-light .loading-overlay {
+  background: rgba(248, 249, 250, 0.9) !important;
+}
+
+.theme-light .error-overlay {
+  background: rgba(248, 249, 250, 0.95) !important;
+  color: #333333 !important;
+}
+
+/* Smooth theme transition */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
+}
+
+/* Respect user's motion preferences for theme transitions */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* Theme toggle responsive design */
+@media (max-width: 768px) {
+  #theme-toggle {
+    top: 10px !important;
+    right: 10px !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    min-width: 80px !important;
+  }
+  
+  #theme-toggle .theme-text {
+    display: none !important;
+  }
+}
+
+/* ===== KEYBOARD SHORTCUTS HELP SYSTEM ===== */
+
+/* Shortcuts Help Button */
+#shortcuts-help {
+  position: fixed !important;
+  top: 20px !important;
+  right: 130px !important;
+  z-index: 9999 !important;
+  background: var(--bg-secondary) !important;
+  border: 2px solid var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  padding: 10px !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  width: 45px !important;
+  height: 45px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#shortcuts-help:hover {
+  background: var(--accent-primary) !important;
+  color: var(--bg-primary) !important;
+  transform: translateY(-2px) scale(1.1) !important;
+  box-shadow: 0 4px 15px var(--shadow-color) !important;
+}
+
+#shortcuts-help .fa {
+  font-size: 18px !important;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 10000 !important;
+  backdrop-filter: blur(5px) !important;
+}
+
+/* Modal Content */
+.modal-content {
+  background: var(--bg-primary) !important;
+  border: 2px solid var(--accent-primary) !important;
+  border-radius: 12px !important;
+  max-width: 800px !important;
+  max-height: 80vh !important;
+  overflow-y: auto !important;
+  box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3) !important;
+  animation: modalSlideIn 0.3s ease-out !important;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Modal Header */
+.modal-header {
+  padding: 20px 25px !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)) !important;
+  color: #000 !important;
+}
+
+.modal-header h2 {
+  margin: 0 !important;
+  font-size: 1.5em !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.modal-close {
+  background: transparent !important;
+  border: none !important;
+  color: #000 !important;
+  font-size: 24px !important;
+  cursor: pointer !important;
+  padding: 5px !important;
+  border-radius: 4px !important;
+  transition: background-color 0.3s ease !important;
+}
+
+.modal-close:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Modal Body */
+.modal-body {
+  padding: 25px !important;
+}
+
+/* Shortcuts Grid */
+.shortcuts-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+  gap: 25px !important;
+  margin-bottom: 25px !important;
+}
+
+.shortcut-category h3 {
+  color: var(--accent-primary) !important;
+  margin: 0 0 15px 0 !important;
+  font-size: 1.1em !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  padding-bottom: 8px !important;
+}
+
+.shortcut-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 10px 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.shortcut-item:last-child {
+  border-bottom: none !important;
+}
+
+/* Keyboard Key Styling */
+kbd {
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 4px !important;
+  padding: 4px 8px !important;
+  font-family: 'Courier New', monospace !important;
+  font-size: 0.9em !important;
+  color: var(--accent-primary) !important;
+  box-shadow: 0 2px 0 rgba(0, 255, 255, 0.3) !important;
+  margin: 0 2px !important;
+  display: inline-block !important;
+  min-width: 25px !important;
+  text-align: center !important;
+}
+
+/* Shortcuts Footer */
+.shortcuts-footer {
+  background: var(--bg-secondary) !important;
+  padding: 15px !important;
+  border-radius: 8px !important;
+  border-left: 4px solid var(--accent-primary) !important;
+}
+
+.shortcuts-footer p {
+  margin: 0 !important;
+  color: var(--text-secondary) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Responsive Design for Modal */
+@media (max-width: 768px) {
+  #shortcuts-help {
+    right: 70px !important;
+    top: 10px !important;
+    width: 40px !important;
+    height: 40px !important;
+  }
+  
+  .modal-content {
+    margin: 20px !important;
+    max-height: calc(100vh - 40px) !important;
+  }
+  
+  .shortcuts-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  
+  .modal-header,
+  .modal-body {
+    padding: 15px !important;
+  }
+  
+  .shortcut-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 5px !important;
+  }
+}
